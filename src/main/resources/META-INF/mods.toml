@@ -1,0 +1,59 @@
+modLoader="javafml"
+loaderVersion="[35,)"
+license="TODO: creative commons"
+# A URL to refer people to when problems occur with this mod
+#issueTrackerURL="http://my.issue.tracker/" #optional
+
+[[mods]] #mandatory
+modId="boilbubble"
+# The version number of the mod - there's a few well known ${} variables useable here or just hardcode it
+# ${file.jarVersion} will substitute the value of the Implementation-Version as read from the mod's JAR file metadata
+# see the associated build.gradle script for how to populate this completely automatically during a build
+version="${file.jarVersion}"
+displayName="Boil and Bubble"
+# A URL to query for updates for this mod. See the JSON update specification <here>
+#updateJSONURL="http://myurl.me/" #optional
+# A URL for the "homepage" for this mod, displayed in the mod UI
+#displayURL="http://example.com/" #optional
+# A file name (in the root of the mod JAR) containing a logo for display
+#logoFile="examplemod.png" #optional
+# A text field displayed in the mod UI
+#credits="Thanks for this example mod goes to Java" #optional
+# A text field displayed in the mod UI
+authors="Keykeepers Interactive"
+description='''
+Boil and Bubble
+
+Adds a number of fluid-related things that are meant to support other Keykeepers mods, but that others might wish to
+incorporate as standalone or as a mod dependency. This mod is also written with high compatibility for Immersive
+Engineering in mind, though does not inherently require that mod.
+
+a) Improved Cauldrons. Vanilla cauldrons have expanded functionalty. They may now contain any liquid from Vanilla
+Minecraft, including expanded fluid handling for "should be" fluids like milk and potions, as well as fluids from
+other Forge mods. Cauldrons can also be used to heat or cool water, producing water at different temperatures
+(Cold Water, Hot Water, Freezing Water and Boiling Water) based on the prevailing biome temperature and the presence
+of 'hot' or 'cold' blocks beneath the cauldron. Cauldrons also become compatible Forge fluid transport systems.
+Finally, a variety of cauldrons may be made from different metals, with the Vanilla cauldron recipe now producing a
+Cast Iron Cauldron. Different types of cauldrons have different capabilities.
+
+b) Air Gases. Implements Steam and Pressurized Air as gases. Component air gases are added as well to support mods
+which can separate the gaseous components of air: Oxygen, Carbon Dioxide and Nitrogen. Also adds Liquid Nitrogen and
+Dry Ice (a block made of frozen carbon dioxide) as additional useful components. Adds a simple Hand Compressor block
+that can be crafted, placed and used to slowly accumulate Pressurized Air, which is the only one used directly in this
+mod. Other gases generally require implementation found in other mods.
+
+c) Hose. Adds recipes for a Hose Reel and Hose Fittings. Hoses are a flexible but inefficient way to transport
+fluids that are no hotter than Steam and no colder than Freezing Water. They are very useful for making full use of a
+Diving Suit.
+
+d) Diving Suit. Adds recipe for making Diving Suit armor out of Leather, Glass Panes and various metals. Choice of
+metal determines the appearance of the armor pieces. Diving suits provide poor protection but greatly enhance the
+wearer's ability to operate underwater, especially when tethered to a Hand Compressor via a Hose.
+'''
+
+[[dependencies.boilbubble]]
+modId="forge"
+mandatory=true
+versionRange="[${forge_version},)"
+ordering="NONE"
+side="BOTH"
