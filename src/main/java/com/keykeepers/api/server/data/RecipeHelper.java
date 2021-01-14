@@ -8,23 +8,31 @@ import net.minecraft.tags.ITag;
 import net.minecraft.util.IItemProvider;
 import net.minecraft.util.ResourceLocation;
 
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-public class Recipes extends RecipeProvider {
-  protected final String modId;
+public abstract class RecipeHelper extends RecipeProvider {
 
-  public Recipes(DataGenerator generatorIn, String modId) {
-    super(generatorIn);
-    this.modId = modId;
-  }
-
-  protected ResourceLocation forgeLoc(String path) {
+  protected static ResourceLocation forgeLoc(String path) {
     return new ResourceLocation("forge", path);
   }
 
+  protected final TagsProviders tagsProviders;
+
+  public RecipeHelper(DataGenerator generatorIn, TagsProviders tagsProviders) {
+    super(generatorIn);
+    this.tagsProviders = tagsProviders;
+  }
+
+  protected abstract void recipes(Consumer<IFinishedRecipe> consumer);
+
   protected ResourceLocation modLoc(String path) {
-    return new ResourceLocation(modId, path);
+    return new ResourceLocation(tagsProviders.modId(), path);
+  }
+
+  protected String pathName(Item item) {
+    return Objects.requireNonNull(item.getRegistryName()).getPath();
   }
 
   protected void packingRecipes(Consumer<IFinishedRecipe> consumer,
@@ -85,18 +93,24 @@ public class Recipes extends RecipeProvider {
   }
 
   protected ITag.INamedTag<Item> itemTag(IItemProvider item) {
-    return TagsProviders.itemTagsMap.get(item.asItem());
+    return tagsProviders.getItemTag(item.asItem());
   }
 
   protected ResourceLocation conversionRecipeName(IItemProvider output, IItemProvider input) {
-    return new ResourceLocation(modId, itemPath(output) + "_from_" + itemPath(input));
+    return new ResourceLocation(tagsProviders.modId(), itemPath(output) + "_from_" + itemPath(input));
   }
 
   protected ResourceLocation smeltingRecipeName(IItemProvider output) {
-    return new ResourceLocation(modId, "smelting/" + itemPath(output) + "_smelting");
+    return new ResourceLocation(tagsProviders.modId(), "smelting/" + itemPath(output) + "_smelting");
   }
 
   protected ResourceLocation blastingRecipeName(IItemProvider output) {
-    return new ResourceLocation(modId, "smelting/" + itemPath(output) + "_blasting");
+    return new ResourceLocation(tagsProviders.modId(), "smelting/" + itemPath(output) + "_blasting");
+  }
+
+  @Override
+  @ParametersAreNonnullByDefault
+  protected final void registerRecipes(Consumer<IFinishedRecipe> consumer) {
+    recipes(consumer);
   }
 }

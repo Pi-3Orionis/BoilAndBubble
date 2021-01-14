@@ -1,6 +1,7 @@
 package com.keykeepers.boilbubble;
 
 import com.keykeepers.api.common.Registry;
+import com.keykeepers.api.common.data.TagsProviders;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
@@ -27,6 +28,7 @@ public class BoilBubble {
   public static final String MODID = "boilbubble";
   public static final ItemGroup itemGroup;
   public static final Registry registry;
+  public static final TagsProviders tagProviders;
 
   private static final Logger logger = LogManager.getLogger(MODID);
 
@@ -37,6 +39,7 @@ public class BoilBubble {
       public ItemStack createIcon() { return new ItemStack(Items.CAULDRON); }
     };
     registry = new Registry(MODID, itemGroup);
+    tagProviders = new TagsProviders(MODID);
   }
 
   public BoilBubble() {

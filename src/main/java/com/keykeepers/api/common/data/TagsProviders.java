@@ -16,36 +16,42 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class TagsProviders {
-  public static final HashMap<Block, INamedTag<Block>> blockTagsMap = new HashMap<>();
-  public static final HashMap<Item, INamedTag<Item>> itemTagsMap = new HashMap<>();
-  public static final HashMap<String, ArrayList<INamedTag<Item>>> subgroupItemsMap = new HashMap<>();
-  public static final HashMap<String, INamedTag<Item>> subgroupTagsMap = new HashMap<>();
-  public static final HashMap<String, ArrayList<ResourceLocation>> subgroupOptionalTagsMap = new HashMap<>();
-  public final ModBlockTagsProvider blockTagsProvider;
-  public final ModItemTagsProvider itemTagsProvider;
-
-  public TagsProviders(DataGenerator generator, String modId, @Nullable ExistingFileHelper fileHelper) {
-    blockTagsProvider = new ModBlockTagsProvider(generator, modId, fileHelper);
-    itemTagsProvider = new ModItemTagsProvider(generator, blockTagsProvider, modId, fileHelper);
-  }
-
-  public static ResourceLocation forgeLoc(String name) {
+  protected static ResourceLocation forgeLoc(String name) {
     return new ResourceLocation("forge", name);
   }
 
-  public static INamedTag<Block> addBlockTag(Block block, String tagString) {
+  private final String modId;
+  private final HashMap<Block, INamedTag<Block>> blockTagsMap = new HashMap<>();
+  private final HashMap<Item, INamedTag<Item>> itemTagsMap = new HashMap<>();
+  private final HashMap<String, ArrayList<INamedTag<Item>>> subgroupItemsMap = new HashMap<>();
+  private final HashMap<String, INamedTag<Item>> subgroupTagsMap = new HashMap<>();
+  private final HashMap<String, ArrayList<ResourceLocation>> subgroupOptionalTagsMap = new HashMap<>();
+  private ModBlockTagsProvider blockTagsProvider;
+  private ModItemTagsProvider itemTagsProvider;
+
+  public TagsProviders(String modId) {
+    this.modId = modId;
+  }
+
+  public String modId() { return modId; }
+
+  public INamedTag<Block> addBlockTag(Block block, String tagString) {
     INamedTag<Block> tag = BlockTags.makeWrapperTag(forgeLoc(tagString).toString());
     blockTagsMap.put(block, tag);
     return tag;
   }
 
-  public static INamedTag<Item> addItemTag(Item item, String tagString) {
+  public INamedTag<Block> getBlockTag(Block block) { return blockTagsMap.get(block); }
+
+  public INamedTag<Item> getItemTag(Item item) { return itemTagsMap.get(item); }
+
+  public INamedTag<Item> addItemTag(Item item, String tagString) {
     INamedTag<Item> tag = ItemTags.makeWrapperTag(forgeLoc(tagString).toString());
     itemTagsMap.put(item, tag);
     return tag;
   }
 
-  public static INamedTag<Item> addItemSubgroupTag(INamedTag<Item> itemTag, String subgroup) {
+  public INamedTag<Item> addItemSubgroupTag(INamedTag<Item> itemTag, String subgroup) {
     ArrayList<INamedTag<Item>> items = subgroupItemsMap.computeIfAbsent(subgroup, k -> new ArrayList<>());
     items.add(itemTag);
     if (!subgroupTagsMap.containsKey(subgroup))
@@ -53,7 +59,7 @@ public class TagsProviders {
     return subgroupTagsMap.get(subgroup);
   }
 
-  public static INamedTag<Item> addItemSubgroupOptionalTag(ResourceLocation optionalTag, String subgroup) {
+  public INamedTag<Item> addItemSubgroupOptionalTag(ResourceLocation optionalTag, String subgroup) {
     ArrayList<ResourceLocation> optionalTags = subgroupOptionalTagsMap.computeIfAbsent(subgroup,
         k -> new ArrayList<>());
     optionalTags.add(optionalTag);
@@ -62,7 +68,16 @@ public class TagsProviders {
     return subgroupTagsMap.get(subgroup);
   }
 
-  private static class ModBlockTagsProvider extends BlockTagsProvider {
+  public void initializeProviders(DataGenerator generator, @Nullable ExistingFileHelper fileHelper) {
+    blockTagsProvider = new ModBlockTagsProvider(generator, modId, fileHelper);
+    itemTagsProvider = new ModItemTagsProvider(generator, blockTagsProvider, modId, fileHelper);
+  }
+
+  public BlockTagsProvider blockTagsProvider() { return blockTagsProvider; }
+
+  public ItemTagsProvider itemTagsProvider() { return itemTagsProvider; }
+
+  private class ModBlockTagsProvider extends BlockTagsProvider {
     private ModBlockTagsProvider(DataGenerator generatorIn,
                                  String modId,
                                  @Nullable ExistingFileHelper existingFileHelper) {
@@ -78,7 +93,7 @@ public class TagsProviders {
     }
   }
 
-  private static class ModItemTagsProvider extends ItemTagsProvider {
+  private class ModItemTagsProvider extends ItemTagsProvider {
 
     private ModItemTagsProvider(DataGenerator dataGenerator,
                                 BlockTagsProvider blockTagProvider,
