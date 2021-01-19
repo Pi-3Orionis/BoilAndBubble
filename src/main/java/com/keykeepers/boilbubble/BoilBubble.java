@@ -22,7 +22,6 @@ import org.apache.logging.log4j.Logger;
 import javax.annotation.Nonnull;
 import java.util.stream.Collectors;
 
-// The value here should match an entry in the META-INF/mods.toml file
 @Mod("boilbubble")
 public class BoilBubble {
   public static final String MODID = "boilbubble";
@@ -34,9 +33,11 @@ public class BoilBubble {
 
   static {
     itemGroup = new ItemGroup(MODID) {
+
       @Override
       @Nonnull
       public ItemStack createIcon() { return new ItemStack(Items.CAULDRON); }
+
     };
     registry = new Registry(MODID, itemGroup);
     tagProviders = new TagsProviders(MODID);
