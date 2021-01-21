@@ -16,7 +16,7 @@ import java.util.TreeMap;
  * or you may specify as many capacities as tanks. If no capacity is supplied, the capacity of all
  * tanks are set to the volume of one bucket.
  */
-public class FractionalTank implements IFluidHandler {
+public abstract class FractionalTank implements IFluidHandler {
   private final InternalTank[] tanks;
 
   public FractionalTank(int tanks, int... capacities) {
@@ -49,7 +49,7 @@ public class FractionalTank implements IFluidHandler {
   @Nonnull
   @Override
   public final FluidStack getFluidInTank(int tank) {
-    InternalTank internalTank =  tanks[tank];
+    InternalTank internalTank = tanks[tank];
     return internalTank.getFluid();
   }
 
@@ -58,54 +58,87 @@ public class FractionalTank implements IFluidHandler {
     return tanks[tank].capacity;
   }
 
-  /**
-   * This method defaults to true, meaning it will accept all fluids. Can be overridden to restrict what kinds of
-   * fluid will be allowed in the tanks.
-   *
-   * @param tank Tank ID
-   * @param stack Fluid to test for adding to the specified tank
-   * @return true only if the tank will ever accept the type of fluid
-   */
   @Override
-  public boolean isFluidValid(int tank, @Nonnull FluidStack stack) {
-    return true;
-  }
+  public abstract boolean isFluidValid(int tank, @Nonnull FluidStack stack);
 
   @Override
   public final int fill(FluidStack resource, FluidAction action) {
-    return 0;
+    FluidStack excessStack = resource.copy();
+    for (int i = 0; i < tanks.length; i++) {
+      if (!isFluidValid(i, resource))
+        continue;
+      InternalTank tank = tanks[i];
+      excessStack.shrink(tank.fill(excessStack, action));
+      if (excessStack.getAmount() < 1)
+        break;
+    }
+    return resource.getAmount() - excessStack.getAmount();
   }
 
   @Nonnull
   @Override
   public final FluidStack drain(FluidStack resource, FluidAction action) {
-    return null;
+    FluidStack remainingStack = resource.copy();
+    for (InternalTank tank : tanks) {
+      FluidStack tankDrainStack = tank.drain(remainingStack, action);
+      remainingStack.shrink(tankDrainStack.getAmount());
+      if (remainingStack.getAmount() < 1)
+        break;
+    }
+    if (remainingStack.getAmount() < 1)
+      return resource.copy();
+    FluidStack drainStack = resource.copy();
+    drainStack.shrink(remainingStack.getAmount());
+    return drainStack;
   }
 
   @Nonnull
   @Override
   public final FluidStack drain(int maxDrain, FluidAction action) {
-    return null;
+    FluidStack drainStack = null;
+    for (InternalTank tank : tanks) {
+      if (drainStack == null) {
+        drainStack = tank.drain(maxDrain, action);
+        if (drainStack.equals(FluidStack.EMPTY))
+          drainStack = null;
+      } else if (maxDrain > drainStack.getAmount()) {
+        FluidStack tankDrainStack = drainStack.copy();
+        tankDrainStack.setAmount(maxDrain - drainStack.getAmount());
+        tankDrainStack = tank.drain(tankDrainStack, action);
+        drainStack.grow(tankDrainStack.getAmount());
+      } else
+        break;
+    }
+    if (drainStack == null)
+      return FluidStack.EMPTY;
+    return drainStack;
   }
 
   private class InternalTank extends TreeMap<Fluid, FluidStack> implements IFluidTank {
+    private final int id;
     private final int capacity;
 
     private InternalTank(int id, int capacity) {
+      super((o1, o2) -> Integer.compare(o2.getAttributes().getDensity(), o1.getAttributes().getDensity()));
+      this.id = id;
       if (capacity < 1)
         throw new IllegalArgumentException("Capacity on tank " + id + " is not a positive value");
       this.capacity = capacity;
+
     }
 
     @Nonnull
     @Override
     public FluidStack getFluid() {
-      return null;
+      return isEmpty() ? FluidStack.EMPTY : values().iterator().next();
     }
 
     @Override
     public int getFluidAmount() {
-      return 0;
+      int amount = 0;
+      for (FluidStack stack : values())
+        amount += stack.getAmount();
+      return amount;
     }
 
     @Override
@@ -113,26 +146,70 @@ public class FractionalTank implements IFluidHandler {
       return capacity;
     }
 
+    /**
+     * Handled via the enclosing class.
+     *
+     * @param stack The potential input to test
+     * @return true if the tank can hold the fluid
+     */
     @Override
     public boolean isFluidValid(FluidStack stack) {
-      return false;
+      return FractionalTank.this.isFluidValid(id, stack);
     }
 
     @Override
     public int fill(FluidStack resource, IFluidHandler.FluidAction action) {
-      return 0;
+      int availVolume = capacity - getFluidAmount();
+      if (availVolume < 1)
+        return 0;
+      int fillAmount = Math.min(resource.getAmount(), availVolume);
+      if (action.execute())
+        if (containsKey(resource.getFluid())) {
+          FluidStack tankStack = get(resource.getFluid());
+          tankStack.grow(fillAmount);
+        }
+        else {
+          FluidStack newStack = resource.copy();
+          newStack.setAmount(fillAmount);
+          put(newStack.getFluid(), newStack);
+        }
+      return fillAmount;
     }
 
     @Nonnull
     @Override
     public FluidStack drain(int maxDrain, IFluidHandler.FluidAction action) {
-      return null;
+      if (isEmpty())
+        return FluidStack.EMPTY;
+      FluidStack tankStack = values().iterator().next();
+      FluidStack drainStack = tankStack.copy();
+      if (tankStack.getAmount() > maxDrain)
+        drainStack.setAmount(maxDrain);
+      if (action.execute()) {
+        if (tankStack.getAmount() > maxDrain)
+          tankStack.shrink(maxDrain);
+        else
+          remove(tankStack.getFluid());
+      }
+      return drainStack;
     }
 
     @Nonnull
     @Override
     public FluidStack drain(FluidStack resource, IFluidHandler.FluidAction action) {
-      return null;
+      if (!containsKey(resource.getFluid()))
+        return FluidStack.EMPTY;
+      FluidStack tankStack = get(resource.getFluid());
+      FluidStack drainStack = resource.copy();
+      if (drainStack.getAmount() > tankStack.getAmount())
+        drainStack.setAmount(tankStack.getAmount());
+      if (action.execute()) {
+        if (tankStack.getAmount() > drainStack.getAmount())
+          tankStack.shrink(drainStack.getAmount());
+        else
+          remove(tankStack.getFluid());
+      }
+      return drainStack;
     }
   }
 }
