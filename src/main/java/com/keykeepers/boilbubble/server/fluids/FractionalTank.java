@@ -35,14 +35,31 @@ public abstract class FractionalTank implements IFluidHandler {
       this.tanks[i] = new InternalTank(i, generalCapacity == -1 ? capacities[i] : generalCapacity);
   }
 
+  public final FluidStack[] contents(int tank) { return tanks[tank].contents(); }
+
   @Override
   public final int getTanks() {
     return tanks.length;
   }
 
+  @Nonnull
+  public final FluidStack getFluidStack(int tank, Fluid fluid) {
+    FluidStack stack = tanks[tank].get(fluid);
+    if (stack == null)
+      return FluidStack.EMPTY;
+    return stack;
+  }
+
   public final FluidStack getFluidInTank(int tank, TankAccessType type) {
     InternalTank internalTank = tanks[tank];
     return internalTank.getAccess(type).getFluid();
+  }
+
+  public final int getFluidAmount(int tank) {
+    int count = 0;
+    for (FluidStack stack : tanks[tank].contents())
+      count += stack.getAmount();
+    return count;
   }
 
   @Nonnull
@@ -145,6 +162,8 @@ public abstract class FractionalTank implements IFluidHandler {
 
     public final TankAccessType type() { return type; }
 
+    public final FluidStack[] contents() { return tanks[id].contents(); }
+
     protected final InternalTank tank() { return tanks[id]; }
 
     @Nonnull
@@ -240,11 +259,11 @@ public abstract class FractionalTank implements IFluidHandler {
     }
   }
 
-  protected class InternalTank extends TreeMap<Fluid, FluidStack> {
+  private class InternalTank extends TreeMap<Fluid, FluidStack> {
     private final int id;
     private final int capacity;
 
-    protected InternalTank(int id, int capacity) {
+    private InternalTank(int id, int capacity) {
       super((o1, o2) -> Integer.compare(o2.getAttributes().getDensity(), o1.getAttributes().getDensity()));
       this.id = id;
       if (capacity < 1)
@@ -252,11 +271,11 @@ public abstract class FractionalTank implements IFluidHandler {
       this.capacity = capacity;
     }
 
-    protected final FluidStack[] contents() {
+    private final FluidStack[] contents() {
       return values().toArray(new FluidStack[0]);
     }
 
-    protected TankAccess getAccess(TankAccessType type) {
+    private TankAccess getAccess(TankAccessType type) {
       return new TankAccess(id, type);
     }
   }
